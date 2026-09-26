@@ -1,0 +1,112 @@
+package pedidos360.ms_orders.service;
+
+import pedidos360.ms_orders.model.Pedido;
+import pedidos360.ms_orders.model.EstadoPedido;
+import pedidos360.ms_orders.repository.PedidoRepository;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.HttpClientErrorException;
+
+import java.util.List;
+
+@Service
+public class PedidoService {
+
+    private final PedidoRepository pedidoRepository;
+    private final RestClient restClient;
+
+    public PedidoService(
+            PedidoRepository pedidoRepository,
+            RestClient.Builder restClientBuilder,
+            @Value("${catalog.service.url}") String catalogUrl) {
+
+        this.pedidoRepository = pedidoRepository;
+
+        this.restClient = restClientBuilder
+                .baseUrl(catalogUrl)
+                .build();
+    }
+
+    public List<Pedido> listarPedidos() {
+        return pedidoRepository.findAll();
+    }
+
+    public Pedido obtenerPedido(Long id) {
+        return pedidoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Pedido no encontrado"));
+    }
+
+    public Pedido crearPedido(Pedido pedido) {
+        pedido.setEstado(EstadoPedido.CREADO);
+        return pedidoRepository.save(pedido);
+    }
+
+    public Pedido actualizarPedido(Long id, Pedido datos) {
+        Pedido pedido = obtenerPedido(id);
+
+        pedido.setClienteId(datos.getClienteId());
+        pedido.setProductoId(datos.getProductoId());
+        pedido.setCantidad(datos.getCantidad());
+
+        return pedidoRepository.save(pedido);
+    }
+
+    public void eliminarPedido(Long id) {
+        Pedido pedido = obtenerPedido(id);
+        pedidoRepository.delete(pedido);
+    }
+
+    public Pedido cambiarEstado(Long id, EstadoPedido nuevoEstado) {
+        Pedido pedido = obtenerPedido(id);
+        EstadoPedido estadoActual = pedido.getEstado();
+
+        if (estadoActual == EstadoPedido.CREADO
+                && nuevoEstado == EstadoPedido.ACEPTADO) {
+
+            try {
+                restClient.put()
+                        .uri(uriBuilder -> uriBuilder
+                                .path("/api/catalog/productos/{id}/stock/disminuir")
+                                .queryParam("cantidad", pedido.getCantidad())
+                                .build(pedido.getProductoId()))
+                        .retrieve()
+                        .toBodilessEntity();
+
+                pedido.setEstado(nuevoEstado);
+
+            } catch (HttpClientErrorException.Conflict e) {
+                throw new IllegalStateException("Stock insuficiente");
+            }
+
+        } else if (estadoActual == EstadoPedido.ACEPTADO
+                && nuevoEstado == EstadoPedido.EN_PREPARACION) {
+
+            pedido.setEstado(nuevoEstado);
+
+        } else if (estadoActual == EstadoPedido.EN_PREPARACION
+                && nuevoEstado == EstadoPedido.DESPACHADO) {
+
+            pedido.setEstado(nuevoEstado);
+
+        } else if (estadoActual == EstadoPedido.DESPACHADO
+                && nuevoEstado == EstadoPedido.ENTREGADO) {
+
+            pedido.setEstado(nuevoEstado);
+
+        } else if (nuevoEstado == EstadoPedido.CANCELADO
+                && (estadoActual == EstadoPedido.CREADO
+                        || estadoActual == EstadoPedido.ACEPTADO
+                        || estadoActual == EstadoPedido.EN_PREPARACION)) {
+
+            pedido.setEstado(nuevoEstado);
+
+        } else {
+            throw new IllegalStateException(
+                    "Transición de estado no permitida: "
+                            + estadoActual + " -> " + nuevoEstado);
+        }
+
+        return pedidoRepository.save(pedido);
+    }
+}
