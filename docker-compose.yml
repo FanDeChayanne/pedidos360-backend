@@ -1,22 +1,37 @@
 version: '3.8'
 
 services:
-  rabbitmq:
-    image: rabbitmq:4.2-management
-    container_name: rabbitmq
-    ports:
-      - "5672:5672"    # AMQP Protocol Port
-      - "15672:15672"  # Management UI Port
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+  ms-catalog:
+    build: ./ms-catalog
+    container_name: ms-catalog
+    env_file:
+      - .env
     volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - ./wallet:/wallet:ro
+    restart: unless-stopped
 
-volumes:
-  rabbitmq_data:
+  ms-orders:
+    build: ./ms-orders
+    container_name: ms-orders
+    env_file:
+      - .env
+    environment:
+      CATALOG_SERVICE_URL: http://ms-catalog:8082
+    volumes:
+      - ./wallet:/wallet:ro
+    depends_on:
+      - ms-catalog
+    restart: unless-stopped
+
+  ms-bff:
+    build: ./ms-bff
+    container_name: ms-bff
+    environment:
+      ORDERS_SERVICE_URL: http://ms-orders:8081
+      CATALOG_SERVICE_URL: http://ms-catalog:8082
+    ports:
+      - "80:8080"
+    depends_on:
+      - ms-orders
+      - ms-catalog
+    restart: unless-stopped

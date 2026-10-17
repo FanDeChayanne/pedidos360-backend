@@ -2,6 +2,7 @@ package pedidos360.ms_orders.service;
 
 import pedidos360.ms_orders.model.Pedido;
 import pedidos360.ms_orders.model.EstadoPedido;
+import pedidos360.ms_orders.model.PedidoItem;
 import pedidos360.ms_orders.repository.PedidoRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -39,6 +40,7 @@ public class PedidoService {
 
     public Pedido crearPedido(Pedido pedido) {
         pedido.setEstado(EstadoPedido.CREADO);
+        pedido.getItems().forEach(item -> item.setPedido(pedido));
         return pedidoRepository.save(pedido);
     }
 
@@ -46,8 +48,6 @@ public class PedidoService {
         Pedido pedido = obtenerPedido(id);
 
         pedido.setClienteId(datos.getClienteId());
-        pedido.setProductoId(datos.getProductoId());
-        pedido.setCantidad(datos.getCantidad());
 
         return pedidoRepository.save(pedido);
     }
@@ -65,20 +65,20 @@ public class PedidoService {
                 && nuevoEstado == EstadoPedido.ACEPTADO) {
 
             try {
-                restClient.put()
-                        .uri(uriBuilder -> uriBuilder
-                                .path("/api/catalog/productos/{id}/stock/disminuir")
-                                .queryParam("cantidad", pedido.getCantidad())
-                                .build(pedido.getProductoId()))
-                        .retrieve()
-                        .toBodilessEntity();
-
-                pedido.setEstado(nuevoEstado);
-
+                for (PedidoItem item : pedido.getItems()) {
+                    restClient.put()
+                            .uri(uriBuilder -> uriBuilder
+                                    .path("/api/catalog/productos/{id}/stock/disminuir")
+                                    .queryParam("cantidad", item.getCantidad())
+                                    .build(item.getProductId()))
+                            .retrieve()
+                            .toBodilessEntity();
+                }
             } catch (HttpClientErrorException.Conflict e) {
                 throw new IllegalStateException("Stock insuficiente");
             }
 
+            pedido.setEstado(nuevoEstado);
         } else if (estadoActual == EstadoPedido.ACEPTADO
                 && nuevoEstado == EstadoPedido.EN_PREPARACION) {
 

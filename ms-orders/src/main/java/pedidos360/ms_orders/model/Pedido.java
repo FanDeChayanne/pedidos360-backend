@@ -2,6 +2,9 @@ package pedidos360.ms_orders.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "ORDERS")
@@ -17,9 +20,9 @@ public class Pedido {
 
     private String clienteId;
 
-    private Long productoId;
-
-    private Integer cantidad;
+    @JsonManagedReference
+    @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PedidoItem> items = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     private EstadoPedido estado;
