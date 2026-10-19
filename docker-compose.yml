@@ -35,3 +35,12 @@ services:
       - ms-orders
       - ms-catalog
     restart: unless-stopped
+
+  ms-notificaciones:
+    build: ./ms-notificaciones
+    container_name: ms-notificaciones
+    env_file:
+      - .env
+    expose:
+      - "8083"
+    restart: unless-stopped
