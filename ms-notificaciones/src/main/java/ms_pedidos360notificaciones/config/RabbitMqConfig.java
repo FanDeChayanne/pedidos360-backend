@@ -84,6 +84,45 @@ public class RabbitMqConfig {
         return QueueBuilder.durable(name).build();
     }
 
+    @Bean("retryExchange")
+    TopicExchange retryExchange(
+            @Value("${rabbitmq.exchange.retry}") String name) {
+        return new TopicExchange(name);
+    }
+
+    @Bean
+    Queue notificationEmailRetryQueue(
+            @Value("${rabbitmq.queue.retry-email}") String name,
+            @Value("${rabbitmq.retry.ttl-ms}") int ttl,
+            @Value("${rabbitmq.exchange.commands-direct}") String mainExchange) {
+        return QueueBuilder.durable(name)
+                .withArgument("x-message-ttl", ttl)
+                .deadLetterExchange(mainExchange)
+                .build();
+    }
+
+    @Bean
+    Queue notificationPushRetryQueue(
+            @Value("${rabbitmq.queue.retry-push}") String name,
+            @Value("${rabbitmq.retry.ttl-ms}") int ttl,
+            @Value("${rabbitmq.exchange.commands-topic}") String mainExchange) {
+        return QueueBuilder.durable(name)
+                .withArgument("x-message-ttl", ttl)
+                .deadLetterExchange(mainExchange)
+                .build();
+    }
+
+    @Bean
+    Queue kitchenTicketRetryQueue(
+            @Value("${rabbitmq.queue.retry-ticket}") String name,
+            @Value("${rabbitmq.retry.ttl-ms}") int ttl,
+            @Value("${rabbitmq.exchange.commands-direct}") String mainExchange) {
+        return QueueBuilder.durable(name)
+                .withArgument("x-message-ttl", ttl)
+                .deadLetterExchange(mainExchange)
+                .build();
+    }
+
     @Bean
     Binding emailBinding(
             @Qualifier("notificationEmailQueue") Queue queue,
@@ -129,6 +168,30 @@ public class RabbitMqConfig {
             @Qualifier("kitchenTicketDlq") Queue queue,
             @Qualifier("deadLetterExchange") DirectExchange exchange,
             @Value("${rabbitmq.routing.dlq-ticket}") String routingKey) {
+        return BindingBuilder.bind(queue).to(exchange).with(routingKey);
+    }
+
+    @Bean
+    Binding emailRetryBinding(
+            @Qualifier("notificationEmailRetryQueue") Queue queue,
+            @Qualifier("retryExchange") TopicExchange exchange,
+            @Value("${rabbitmq.routing.email}") String routingKey) {
+        return BindingBuilder.bind(queue).to(exchange).with(routingKey);
+    }
+
+    @Bean
+    Binding pushRetryBinding(
+            @Qualifier("notificationPushRetryQueue") Queue queue,
+            @Qualifier("retryExchange") TopicExchange exchange,
+            @Value("${rabbitmq.routing.push-binding}") String routingKey) {
+        return BindingBuilder.bind(queue).to(exchange).with(routingKey);
+    }
+
+    @Bean
+    Binding ticketRetryBinding(
+            @Qualifier("kitchenTicketRetryQueue") Queue queue,
+            @Qualifier("retryExchange") TopicExchange exchange,
+            @Value("${rabbitmq.routing.ticket}") String routingKey) {
         return BindingBuilder.bind(queue).to(exchange).with(routingKey);
     }
 }
