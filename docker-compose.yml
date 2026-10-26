@@ -7,7 +7,7 @@ services:
     env_file:
       - .env
     volumes:
-      - ./wallet:/wallet:ro
+      - ../Wallet_PEDIDOS360:/wallet:ro
     restart: unless-stopped
 
   ms-orders:
@@ -18,7 +18,7 @@ services:
     environment:
       CATALOG_SERVICE_URL: http://ms-catalog:8082
     volumes:
-      - ./wallet:/wallet:ro
+      - ../Wallet_PEDIDOS360:/wallet:ro
     depends_on:
       - ms-catalog
     restart: unless-stopped
@@ -44,3 +44,25 @@ services:
     expose:
       - "8083"
     restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:4.4.0-management
+    container_name: pedidos360-rabbitmq
+    hostname: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-/}
+    ports:
+      - "127.0.0.1:15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  rabbitmq_data:

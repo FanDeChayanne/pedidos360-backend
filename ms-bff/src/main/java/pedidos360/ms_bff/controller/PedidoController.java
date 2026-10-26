@@ -8,7 +8,8 @@ import pedidos360.ms_bff.service.PedidoService;
 import java.util.List;
 
 @RestController
-public class PedidoController {
+public class
+PedidoController {
 
     private final PedidoService pedidoService;
 

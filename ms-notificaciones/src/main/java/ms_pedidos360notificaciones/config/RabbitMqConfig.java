@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMqConfig {
 
-    @Bean
+    @Bean("commandsDirectExchange")
     DirectExchange directExchange(
             @Value("${rabbitmq.exchange.commands-direct}")
             String name
@@ -17,7 +17,7 @@ public class RabbitMqConfig {
         return new DirectExchange(name);
     }
 
-    @Bean
+    @Bean("commandsTopicExchange")
     TopicExchange commandsExchange(
             @Value("${rabbitmq.exchange.commands-topic}")
             String name
