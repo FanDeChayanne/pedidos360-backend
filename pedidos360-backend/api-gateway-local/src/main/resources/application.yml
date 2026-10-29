@@ -1,0 +1,52 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: api-gateway-local
+  cloud:
+    gateway:
+      routes:
+        - id: listar-pedidos
+          uri: http://localhost:8080
+          predicates:
+            - Path=/api/pedidos
+            - Method=GET
+
+        - id: crear-pedido
+          uri: http://localhost:8080
+          predicates:
+            - Path=/api/pedidos
+            - Method=POST
+
+        - id: cambiar-estado-pedido
+          uri: http://localhost:8080
+          predicates:
+            - Path=/api/pedidos/*/estado
+            - Method=PUT
+
+        - id: listar-productos
+          uri: http://localhost:8080
+          predicates:
+            - Path=/api/catalog/productos
+            - Method=GET
+
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins:
+              - http://localhost:4200
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - Authorization
+              - Content-Type
+            allowCredentials: false
+
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO

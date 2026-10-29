@@ -12,7 +12,7 @@ export const environment = {
   apiConfig: {
     // Access token para el BFF (audience del JWT Authorizer de API Gateway)
     scopes: ['api://4ea351c0-ef77-41aa-acac-dd63f5d0648f/access_as_user'],
-    uri: 'http://localhost:8080',
+    uri: 'http://localhost:8090',
     apiAppId: '4ea351c0-ef77-41aa-acac-dd63f5d0648f'
   }
 };
